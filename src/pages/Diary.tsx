@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, CalendarIcon } from "lucide-react";
+import { ArrowLeft, Save, SaveAll, CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
@@ -27,6 +27,7 @@ const Diary = () => {
     return saved ? JSON.parse(saved) : {};
   });
   const [savedStatus, setSavedStatus] = useState<Record<number, boolean>>({});
+  const [allSaved, setAllSaved] = useState(false);
 
   const loadDate = (date: Date) => {
     setSelectedDate(date);
@@ -34,17 +35,31 @@ const Diary = () => {
     const saved = localStorage.getItem(`diary-${key}`);
     setEntries(saved ? JSON.parse(saved) : {});
     setSavedStatus({});
+    setAllSaved(false);
   };
 
   const updateEntry = (hour: number, value: string) => {
     setEntries((prev) => ({ ...prev, [hour]: value }));
     setSavedStatus((prev) => ({ ...prev, [hour]: false }));
+    setAllSaved(false);
   };
 
   const saveEntry = (hour: number) => {
     localStorage.setItem(`diary-${dateKey}`, JSON.stringify(entries));
     setSavedStatus((prev) => ({ ...prev, [hour]: true }));
     setTimeout(() => setSavedStatus((prev) => ({ ...prev, [hour]: false })), 2000);
+  };
+
+  const saveAll = () => {
+    localStorage.setItem(`diary-${dateKey}`, JSON.stringify(entries));
+    const allStatus: Record<number, boolean> = {};
+    HOURS.forEach(({ key }) => { allStatus[key] = true; });
+    setSavedStatus(allStatus);
+    setAllSaved(true);
+    setTimeout(() => {
+      setSavedStatus({});
+      setAllSaved(false);
+    }, 2000);
   };
 
   const hasEntries = Object.values(entries).some((v) => v.trim().length > 0);
@@ -65,24 +80,39 @@ const Diary = () => {
                 {readOnly && <span className="ml-2 text-xs opacity-70">(Read only)</span>}
               </p>
             </div>
-            <Popover>
-              <PopoverTrigger asChild>
-                <button className="glass-btn-outline flex items-center gap-2 text-sm shrink-0">
-                  <CalendarIcon className="w-4 h-4" />
-                  {isToday(selectedDate) ? "Today" : format(selectedDate, "MMM d")}
+            <div className="flex items-center gap-2">
+              {!readOnly && (
+                <button
+                  onClick={saveAll}
+                  className={`flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg transition-all ${
+                    allSaved
+                      ? "bg-[hsl(var(--priority-low))] text-card-foreground"
+                      : "glass-btn"
+                  }`}
+                >
+                  <SaveAll className="w-4 h-4" />
+                  {allSaved ? "All Saved!" : "Save All"}
                 </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-[hsl(220,25%,12%)] border-[rgba(255,255,255,0.15)]" align="end">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(d) => d && loadDate(d)}
-                  disabled={(date) => date > new Date()}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto text-card-foreground")}
-                />
-              </PopoverContent>
-            </Popover>
+              )}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="glass-btn-outline flex items-center gap-2 text-sm shrink-0">
+                    <CalendarIcon className="w-4 h-4" />
+                    {isToday(selectedDate) ? "Today" : format(selectedDate, "MMM d")}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 bg-[hsl(220,25%,12%)] border-[rgba(255,255,255,0.15)]" align="end">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(d) => d && loadDate(d)}
+                    disabled={(date) => date > new Date()}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto text-card-foreground")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
         </div>
 

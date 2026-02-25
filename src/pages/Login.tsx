@@ -1,31 +1,32 @@
 import { useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogIn } from "lucide-react";
+import { Mail } from "lucide-react";
 
 const Login = () => {
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<{ username?: string; password?: string; general?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
 
   if (isAuthenticated) return <Navigate to="/" replace />;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: typeof errors = {};
-    if (username.trim().length < 3) newErrors.username = "Username must be at least 3 characters";
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) newErrors.email = "Please enter a valid email address";
     if (password.trim().length < 4) newErrors.password = "Password must be at least 4 characters";
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-    const success = login(username, password);
+    const success = login(email, password);
     if (success) {
       navigate("/");
     } else {
-      setErrors({ general: "Login failed. Please try again." });
+      setErrors({ general: "Login failed. Please check your credentials." });
     }
   };
 
@@ -34,24 +35,24 @@ const Login = () => {
       <div className="glass-card p-8 sm:p-10 w-full max-w-md animate-fade-in">
         <div className="text-center mb-8">
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl glass-btn flex items-center justify-center">
-            <LogIn className="w-8 h-8 text-card-foreground" />
+            <Mail className="w-8 h-8 text-card-foreground" />
           </div>
           <h1 className="text-3xl font-bold text-card-foreground mb-2">Welcome Back</h1>
-          <p className="text-muted-foreground text-sm">Sign in to your account</p>
+          <p className="text-muted-foreground text-sm">Sign in with your email</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-card-foreground text-sm font-medium mb-1.5">Username</label>
+            <label className="block text-card-foreground text-sm font-medium mb-1.5">Email</label>
             <input
-              type="text"
+              type="email"
               className="glass-input w-full"
-              placeholder="Enter your username"
-              value={username}
-              onChange={(e) => { setUsername(e.target.value); setErrors({}); }}
-              maxLength={50}
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); setErrors({}); }}
+              maxLength={100}
             />
-            {errors.username && <p className="text-destructive text-xs mt-1">{errors.username}</p>}
+            {errors.email && <p className="text-destructive text-xs mt-1">{errors.email}</p>}
           </div>
 
           <div>
