@@ -1,10 +1,9 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { createContext, useContext, useState, ReactNode } from "react";
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  username: string;
-  login: (username: string, password: string) => boolean;
+  email: string;
+  login: (email: string, password: string) => boolean;
   logout: () => void;
 }
 
@@ -16,32 +15,35 @@ export const useAuth = () => {
   return ctx;
 };
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(
     () => localStorage.getItem("isAuthenticated") === "true"
   );
-  const [username, setUsername] = useState(
-    () => localStorage.getItem("username") || ""
+  const [email, setEmail] = useState(
+    () => localStorage.getItem("userEmail") || ""
   );
 
-  const login = (user: string, password: string) => {
-    if (user.trim().length < 3 || password.trim().length < 4) return false;
+  const login = (emailInput: string, password: string) => {
+    const trimmed = emailInput.trim().toLowerCase();
+    if (!EMAIL_REGEX.test(trimmed) || password.trim().length < 4) return false;
     localStorage.setItem("isAuthenticated", "true");
-    localStorage.setItem("username", user.trim());
+    localStorage.setItem("userEmail", trimmed);
     setIsAuthenticated(true);
-    setUsername(user.trim());
+    setEmail(trimmed);
     return true;
   };
 
   const logout = () => {
     localStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("username");
+    localStorage.removeItem("userEmail");
     setIsAuthenticated(false);
-    setUsername("");
+    setEmail("");
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, username, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, email, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -4,7 +4,7 @@ import { CheckSquare, Clock, LogOut } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { username, logout } = useAuth();
+  const { email, logout } = useAuth();
 
   const handleLogout = () => {
     logout();
@@ -24,7 +24,7 @@ const Index = () => {
 
       <div className="glass-card p-8 sm:p-12 w-full max-w-lg text-center animate-fade-in">
         <h1 className="text-3xl sm:text-4xl font-bold text-card-foreground mb-2">
-          Hello, {username}! 👋
+          Hello, {email.split("@")[0]}! 👋
         </h1>
         <p className="text-muted-foreground mb-10 text-sm">What would you like to do today?</p>
 
