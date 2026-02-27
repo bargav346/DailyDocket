@@ -16,16 +16,17 @@ const Index = () => {
       {/* Logout */}
       <button
         onClick={handleLogout}
-        className="glass-btn-outline absolute top-6 right-6 flex items-center gap-2 text-sm"
+        className="glass-btn-outline fixed right-0 top-1/2 -translate-y-1/2 flex items-center gap-2 text-sm rounded-r-none px-4 py-3"
       >
         <LogOut className="w-4 h-4" />
         Logout
       </button>
 
       <div className="glass-card p-8 sm:p-12 w-full max-w-lg text-center animate-fade-in">
-        <h1 className="text-3xl sm:text-4xl font-bold text-card-foreground mb-2">
-          Hello, {email.split("@")[0]}! 👋
+        <h1 className="text-4xl sm:text-5xl font-bold text-card-foreground mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>
+          Daily Docket
         </h1>
+        <p className="text-muted-foreground mb-2 text-xs tracking-widest uppercase">Welcome back, {email.split("@")[0]} 👋</p>
         <p className="text-muted-foreground mb-10 text-sm">What would you like to do today?</p>
 
         <div className="grid gap-4 sm:grid-cols-2">
