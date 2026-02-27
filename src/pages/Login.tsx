@@ -43,11 +43,11 @@ const Login = () => {
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl glass-btn flex items-center justify-center">
             <Mail className="w-8 h-8 text-card-foreground" />
           </div>
-          <h1 className="text-3xl font-bold text-card-foreground mb-2">
-            {isSignUp ? "Create Account" : "Welcome Back"}
+          <h1 className="text-4xl sm:text-5xl font-bold text-card-foreground mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
+            Daily Docket
           </h1>
-          <p className="text-muted-foreground text-sm">
-            {isSignUp ? "Sign up with your email" : "Sign in with your email"}
+          <p className="text-muted-foreground text-sm mt-3">
+            {isSignUp ? "Create your account to get started" : "Welcome back! Sign in to continue"}
           </p>
         </div>
 
