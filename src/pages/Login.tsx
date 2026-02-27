@@ -7,13 +7,13 @@ const Login = () => {
   const { login, register, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [isSignUp, setIsSignUp] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string; confirm?: string; general?: string }>({});
 
   if (isAuthenticated) return <Navigate to="/" replace />;
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: typeof errors = {};
@@ -37,9 +37,21 @@ const Login = () => {
   const switchMode = () => { setIsSignUp(!isSignUp); setErrors({}); setConfirmPassword(""); };
 
   return (
-    <div className="app-bg flex items-center justify-center p-4">
-      <div className="glass-card p-8 sm:p-10 w-full max-w-md animate-fade-in">
-        <div className="text-center mb-8">
+    <div className="app-bg flex items-center justify-center p-4 relative">
+      {/* Side Login Button */}
+      {!showForm && (
+        <button
+          onClick={() => setShowForm(true)}
+          className="glass-btn fixed right-0 top-1/2 -translate-y-1/2 flex items-center gap-2 text-sm rounded-r-none px-4 py-3 z-50"
+        >
+          <Mail className="w-4 h-4" />
+          {isSignUp ? "Sign Up" : "Login"}
+        </button>
+      )}
+
+      {/* Welcome Title (always visible) */}
+      {!showForm && (
+        <div className="glass-card p-8 sm:p-12 w-full max-w-lg text-center animate-fade-in">
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl glass-btn flex items-center justify-center">
             <Mail className="w-8 h-8 text-card-foreground" />
           </div>
@@ -50,45 +62,68 @@ const Login = () => {
             {isSignUp ? "Create your account to get started" : "Welcome back! Sign in to continue"}
           </p>
         </div>
+      )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-card-foreground text-sm font-medium mb-1.5">Email</label>
-            <input type="email" className="glass-input w-full" placeholder="you@example.com"
-              value={email} onChange={(e) => { setEmail(e.target.value); setErrors({}); }} maxLength={100} />
-            {errors.email && <p className="text-destructive text-xs mt-1">{errors.email}</p>}
-          </div>
-
-          <div>
-            <label className="block text-card-foreground text-sm font-medium mb-1.5">Password</label>
-            <input type="password" className="glass-input w-full" placeholder="Enter your password"
-              value={password} onChange={(e) => { setPassword(e.target.value); setErrors({}); }} maxLength={100} />
-            {errors.password && <p className="text-destructive text-xs mt-1">{errors.password}</p>}
-          </div>
-
-          {isSignUp && (
-            <div>
-              <label className="block text-card-foreground text-sm font-medium mb-1.5">Confirm Password</label>
-              <input type="password" className="glass-input w-full" placeholder="Confirm your password"
-                value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setErrors({}); }} maxLength={100} />
-              {errors.confirm && <p className="text-destructive text-xs mt-1">{errors.confirm}</p>}
+      {/* Login Form (shown on click) */}
+      {showForm && (
+        <div className="glass-card p-8 sm:p-10 w-full max-w-md animate-fade-in relative">
+          <button
+            onClick={() => setShowForm(false)}
+            className="absolute top-4 right-4 text-muted-foreground hover:text-card-foreground transition-colors text-xl"
+          >
+            ✕
+          </button>
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl glass-btn flex items-center justify-center">
+              <Mail className="w-8 h-8 text-card-foreground" />
             </div>
-          )}
+            <h1 className="text-4xl sm:text-5xl font-bold text-card-foreground mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
+              Daily Docket
+            </h1>
+            <p className="text-muted-foreground text-sm mt-3">
+              {isSignUp ? "Create your account to get started" : "Welcome back! Sign in to continue"}
+            </p>
+          </div>
 
-          {errors.general && <p className="text-destructive text-sm text-center">{errors.general}</p>}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-card-foreground text-sm font-medium mb-1.5">Email</label>
+              <input type="email" className="glass-input w-full" placeholder="you@example.com"
+                value={email} onChange={(e) => { setEmail(e.target.value); setErrors({}); }} maxLength={100} />
+              {errors.email && <p className="text-destructive text-xs mt-1">{errors.email}</p>}
+            </div>
 
-          <button type="submit" className="glass-btn w-full py-3 text-base">
-            {isSignUp ? "Create Account" : "Sign In"}
-          </button>
-        </form>
+            <div>
+              <label className="block text-card-foreground text-sm font-medium mb-1.5">Password</label>
+              <input type="password" className="glass-input w-full" placeholder="Enter your password"
+                value={password} onChange={(e) => { setPassword(e.target.value); setErrors({}); }} maxLength={100} />
+              {errors.password && <p className="text-destructive text-xs mt-1">{errors.password}</p>}
+            </div>
 
-        <p className="text-center text-muted-foreground text-sm mt-6">
-          {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
-          <button onClick={switchMode} className="text-card-foreground underline hover:opacity-80 transition-opacity">
-            {isSignUp ? "Sign In" : "Create Account"}
-          </button>
-        </p>
-      </div>
+            {isSignUp && (
+              <div>
+                <label className="block text-card-foreground text-sm font-medium mb-1.5">Confirm Password</label>
+                <input type="password" className="glass-input w-full" placeholder="Confirm your password"
+                  value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setErrors({}); }} maxLength={100} />
+                {errors.confirm && <p className="text-destructive text-xs mt-1">{errors.confirm}</p>}
+              </div>
+            )}
+
+            {errors.general && <p className="text-destructive text-sm text-center">{errors.general}</p>}
+
+            <button type="submit" className="glass-btn w-full py-3 text-base">
+              {isSignUp ? "Create Account" : "Sign In"}
+            </button>
+          </form>
+
+          <p className="text-center text-muted-foreground text-sm mt-6">
+            {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
+            <button onClick={switchMode} className="text-card-foreground underline hover:opacity-80 transition-opacity">
+              {isSignUp ? "Sign In" : "Create Account"}
+            </button>
+          </p>
+        </div>
+      )}
     </div>
   );
 };
