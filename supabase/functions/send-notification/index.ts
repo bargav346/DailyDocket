@@ -81,7 +81,10 @@ serve(async (req) => {
             body,
           }
         );
-        results.sms = smsRes.ok ? "sent" : "failed";
+        const smsBody = await smsRes.text();
+        results.sms = smsRes.ok ? "sent" : `failed: ${smsRes.status} - ${smsBody}`;
+      } else {
+        results.sms = "missing Twilio credentials";
       }
     }
 
