@@ -50,7 +50,10 @@ serve(async (req) => {
             `,
           }),
         });
-        results.email = emailRes.ok ? "sent" : "failed";
+        const emailBody = await emailRes.text();
+        results.email = emailRes.ok ? "sent" : `failed: ${emailRes.status} - ${emailBody}`;
+      } else {
+        results.email = "no RESEND_API_KEY configured";
       }
     }
 
