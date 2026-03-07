@@ -50,7 +50,10 @@ serve(async (req) => {
             `,
           }),
         });
-        results.email = emailRes.ok ? "sent" : "failed";
+        const emailBody = await emailRes.text();
+        results.email = emailRes.ok ? "sent" : `failed: ${emailRes.status} - ${emailBody}`;
+      } else {
+        results.email = "no RESEND_API_KEY configured";
       }
     }
 
@@ -78,7 +81,10 @@ serve(async (req) => {
             body,
           }
         );
-        results.sms = smsRes.ok ? "sent" : "failed";
+        const smsBody = await smsRes.text();
+        results.sms = smsRes.ok ? "sent" : `failed: ${smsRes.status} - ${smsBody}`;
+      } else {
+        results.sms = "missing Twilio credentials";
       }
     }
 
