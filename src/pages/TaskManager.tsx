@@ -12,7 +12,6 @@ interface Task {
   dueTime?: string;
   notified?: boolean;
   notifyEmail?: string;
-  notifyPhone?: string;
 }
 
 const PRIORITY_STYLES = {
