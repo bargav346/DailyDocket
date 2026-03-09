@@ -59,7 +59,6 @@ const TaskManager = () => {
               priority: task.priority,
               dueTime: task.dueTime,
               email: task.notifyEmail,
-              phone: task.notifyPhone,
             },
           });
           if (error) throw error;
