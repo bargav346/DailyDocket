@@ -217,11 +217,6 @@ const TaskManager = () => {
                       <Mail className="w-3 h-3" /> {task.notifyEmail}
                     </span>
                   )}
-                  {task.notifyPhone && (
-                    <span className="text-muted-foreground text-xs flex items-center gap-1">
-                      <Phone className="w-3 h-3" /> {task.notifyPhone}
-                    </span>
-                  )}
                 </div>
               </div>
 
