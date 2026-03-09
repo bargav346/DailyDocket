@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { taskText, priority, dueTime, email, phone } = await req.json();
+    const { taskText, priority, dueTime, email } = await req.json();
 
     if (!taskText) {
       return new Response(JSON.stringify({ error: "taskText is required" }), {
@@ -21,9 +21,8 @@ serve(async (req) => {
       });
     }
 
-    const results: { email?: string; sms?: string } = {};
+    const results: { email?: string } = {};
 
-    // Send email via Resend
     if (email) {
       const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
       if (RESEND_API_KEY) {
@@ -54,37 +53,6 @@ serve(async (req) => {
         results.email = emailRes.ok ? "sent" : `failed: ${emailRes.status} - ${emailBody}`;
       } else {
         results.email = "no RESEND_API_KEY configured";
-      }
-    }
-
-    // Send SMS via Twilio
-    if (phone) {
-      const TWILIO_SID = Deno.env.get("TWILIO_ACCOUNT_SID");
-      const TWILIO_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
-      const TWILIO_FROM = Deno.env.get("TWILIO_PHONE_NUMBER");
-
-      if (TWILIO_SID && TWILIO_TOKEN && TWILIO_FROM) {
-        const body = new URLSearchParams({
-          To: phone,
-          From: TWILIO_FROM,
-          Body: `⏰ Task Due: "${taskText}" | Priority: ${priority?.toUpperCase() || "MEDIUM"}${dueTime ? ` | Due: ${dueTime}` : ""}`,
-        });
-
-        const smsRes = await fetch(
-          `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: "Basic " + btoa(`${TWILIO_SID}:${TWILIO_TOKEN}`),
-              "Content-Type": "application/x-www-form-urlencoded",
-            },
-            body,
-          }
-        );
-        const smsBody = await smsRes.text();
-        results.sms = smsRes.ok ? "sent" : `failed: ${smsRes.status} - ${smsBody}`;
-      } else {
-        results.sms = "missing Twilio credentials";
       }
     }
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Trash2, Check, Bell, BellOff, Clock, Mail, Phone } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Check, Bell, BellOff, Clock, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -12,7 +12,6 @@ interface Task {
   dueTime?: string;
   notified?: boolean;
   notifyEmail?: string;
-  notifyPhone?: string;
 }
 
 const PRIORITY_STYLES = {
@@ -31,7 +30,7 @@ const TaskManager = () => {
   const [priority, setPriority] = useState<Task["priority"]>("medium");
   const [dueTime, setDueTime] = useState("");
   const [notifyEmail, setNotifyEmail] = useState("");
-  const [notifyPhone, setNotifyPhone] = useState("");
+  
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   useEffect(() => {
@@ -47,7 +46,7 @@ const TaskManager = () => {
       const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 
       const tasksToNotify = tasks.filter(
-        (t) => t.dueTime && !t.completed && !t.notified && t.dueTime <= currentTime && (t.notifyEmail || t.notifyPhone)
+        (t) => t.dueTime && !t.completed && !t.notified && t.dueTime <= currentTime && t.notifyEmail
       );
 
       if (tasksToNotify.length === 0) return;
@@ -60,7 +59,6 @@ const TaskManager = () => {
               priority: task.priority,
               dueTime: task.dueTime,
               email: task.notifyEmail,
-              phone: task.notifyPhone,
             },
           });
           if (error) throw error;
@@ -95,7 +93,6 @@ const TaskManager = () => {
         dueTime: dueTime || undefined,
         notified: false,
         notifyEmail: notifyEmail.trim() || undefined,
-        notifyPhone: notifyPhone.trim() || undefined,
       },
       ...prev,
     ]);
@@ -176,16 +173,6 @@ const TaskManager = () => {
                   onChange={(e) => setNotifyEmail(e.target.value)}
                 />
               </div>
-              <div className="flex items-center gap-2 flex-1">
-                <Phone className="w-4 h-4 text-card-foreground shrink-0" />
-                <input
-                  type="tel"
-                  className="glass-input flex-1"
-                  placeholder="Phone +1234... (optional)"
-                  value={notifyPhone}
-                  onChange={(e) => setNotifyPhone(e.target.value)}
-                />
-              </div>
             </div>
           </div>
         </div>
@@ -228,11 +215,6 @@ const TaskManager = () => {
                   {task.notifyEmail && (
                     <span className="text-muted-foreground text-xs flex items-center gap-1">
                       <Mail className="w-3 h-3" /> {task.notifyEmail}
-                    </span>
-                  )}
-                  {task.notifyPhone && (
-                    <span className="text-muted-foreground text-xs flex items-center gap-1">
-                      <Phone className="w-3 h-3" /> {task.notifyPhone}
                     </span>
                   )}
                 </div>
