@@ -173,16 +173,6 @@ const TaskManager = () => {
                   onChange={(e) => setNotifyEmail(e.target.value)}
                 />
               </div>
-              <div className="flex items-center gap-2 flex-1">
-                <Phone className="w-4 h-4 text-card-foreground shrink-0" />
-                <input
-                  type="tel"
-                  className="glass-input flex-1"
-                  placeholder="Phone +1234... (optional)"
-                  value={notifyPhone}
-                  onChange={(e) => setNotifyPhone(e.target.value)}
-                />
-              </div>
             </div>
           </div>
         </div>
