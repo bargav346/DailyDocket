@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Trash2, Check, Bell, BellOff, Clock, Mail, Phone } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Check, Bell, BellOff, Clock, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
