@@ -46,7 +46,7 @@ const TaskManager = () => {
       const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 
       const tasksToNotify = tasks.filter(
-        (t) => t.dueTime && !t.completed && !t.notified && t.dueTime <= currentTime && (t.notifyEmail || t.notifyPhone)
+        (t) => t.dueTime && !t.completed && !t.notified && t.dueTime <= currentTime && t.notifyEmail
       );
 
       if (tasksToNotify.length === 0) return;
