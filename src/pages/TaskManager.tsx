@@ -93,7 +93,6 @@ const TaskManager = () => {
         dueTime: dueTime || undefined,
         notified: false,
         notifyEmail: notifyEmail.trim() || undefined,
-        notifyPhone: notifyPhone.trim() || undefined,
       },
       ...prev,
     ]);
