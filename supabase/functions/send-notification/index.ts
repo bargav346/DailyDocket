@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { taskText, priority, dueTime, email } = await req.json();
+    const { taskText, priority, dueTime, phone, email, minutesBefore } = await req.json();
 
     if (!taskText) {
       return new Response(JSON.stringify({ error: "taskText is required" }), {
@@ -21,8 +21,37 @@ serve(async (req) => {
       });
     }
 
-    const results: { email?: string } = {};
+    const results: { sms?: string; email?: string } = {};
 
+    // Send SMS via MessageBird
+    if (phone) {
+      const MESSAGEBIRD_API_KEY = Deno.env.get("MESSAGEBIRD_API_KEY");
+      if (MESSAGEBIRD_API_KEY) {
+        const timeLabel = minutesBefore !== undefined ? `${minutesBefore} min before` : "now";
+        const smsBody = `⏰ Task Reminder (${timeLabel}): "${taskText}" | Priority: ${(priority || "medium").toUpperCase()}${dueTime ? ` | Due: ${dueTime}` : ""}`;
+
+        const params = new URLSearchParams();
+        params.append("originator", "TaskMgr");
+        params.append("recipients", phone);
+        params.append("body", smsBody);
+
+        const smsRes = await fetch("https://rest.messagebird.com/messages", {
+          method: "POST",
+          headers: {
+            Authorization: `AccessKey ${MESSAGEBIRD_API_KEY}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: params.toString(),
+        });
+        const smsResponseBody = await smsRes.text();
+        results.sms = smsRes.ok ? "sent" : `failed: ${smsRes.status} - ${smsResponseBody}`;
+        console.log("MessageBird SMS result:", results.sms);
+      } else {
+        results.sms = "no MESSAGEBIRD_API_KEY configured";
+      }
+    }
+
+    // Send email via Resend (optional)
     if (email) {
       const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
       if (RESEND_API_KEY) {
@@ -41,7 +70,7 @@ serve(async (req) => {
                 <h2 style="color: #1a1a2e; margin-bottom: 16px;">⏰ Task Reminder</h2>
                 <div style="background: #f4f0ff; padding: 20px; border-radius: 8px; margin-bottom: 16px;">
                   <p style="font-size: 18px; font-weight: 600; color: #1a1a2e; margin: 0 0 8px 0;">${taskText}</p>
-                  <p style="color: #666; margin: 4px 0;">Priority: <strong>${priority?.toUpperCase() || "MEDIUM"}</strong></p>
+                  <p style="color: #666; margin: 4px 0;">Priority: <strong>${(priority || "medium").toUpperCase()}</strong></p>
                   ${dueTime ? `<p style="color: #666; margin: 4px 0;">Due at: <strong>${dueTime}</strong></p>` : ""}
                 </div>
                 <p style="color: #999; font-size: 12px;">Sent from your Task Manager app</p>
@@ -60,6 +89,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
+    console.error("Error:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
