@@ -6,14 +6,13 @@ const Index = () => {
   const navigate = useNavigate();
   const { email, logout } = useAuth();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate("/login");
   };
 
   return (
     <div className="app-bg flex flex-col items-center justify-center p-4 relative">
-      {/* Logout */}
       <button
         onClick={handleLogout}
         className="glass-btn-outline fixed right-0 top-1/2 -translate-y-1/2 flex items-center gap-2 text-sm rounded-r-none px-4 py-3"
