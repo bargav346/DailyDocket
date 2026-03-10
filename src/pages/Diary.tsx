@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, SaveAll, CalendarIcon } from "lucide-react";
+import { ArrowLeft, Save, SaveAll, CalendarIcon, Phone } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const HOURS = Array.from({ length: 17 }, (_, i) => {
   const hour = i + 6;
@@ -18,22 +21,56 @@ const isToday = (d: Date) => toDateKey(d) === toDateKey(new Date());
 
 const Diary = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const dateKey = toDateKey(selectedDate);
   const readOnly = !isToday(selectedDate);
 
-  const [entries, setEntries] = useState<Record<number, string>>(() => {
-    const saved = localStorage.getItem(`diary-${dateKey}`);
-    return saved ? JSON.parse(saved) : {};
-  });
+  const [entries, setEntries] = useState<Record<number, string>>({});
   const [savedStatus, setSavedStatus] = useState<Record<number, boolean>>({});
   const [allSaved, setAllSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [diaryPhone, setDiaryPhone] = useState("");
+  const [phoneSaved, setPhoneSaved] = useState(false);
+
+  // Load entries from DB
+  useEffect(() => {
+    if (!user) return;
+    const load = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("diary_entries")
+        .select("hour, content")
+        .eq("date", dateKey);
+
+      if (error) {
+        console.error(error);
+        toast.error("Failed to load diary entries");
+      } else {
+        const map: Record<number, string> = {};
+        (data || []).forEach((e: any) => { map[e.hour] = e.content; });
+        setEntries(map);
+      }
+      setLoading(false);
+    };
+    load();
+  }, [user, dateKey]);
+
+  // Load phone setting
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("user_settings")
+      .select("diary_phone")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.diary_phone) setDiaryPhone(data.diary_phone);
+      });
+  }, [user]);
 
   const loadDate = (date: Date) => {
     setSelectedDate(date);
-    const key = toDateKey(date);
-    const saved = localStorage.getItem(`diary-${key}`);
-    setEntries(saved ? JSON.parse(saved) : {});
     setSavedStatus({});
     setAllSaved(false);
   };
@@ -44,22 +81,45 @@ const Diary = () => {
     setAllSaved(false);
   };
 
-  const saveEntry = (hour: number) => {
-    localStorage.setItem(`diary-${dateKey}`, JSON.stringify(entries));
+  const saveEntry = async (hour: number) => {
+    if (!user) return;
+    const content = entries[hour] || "";
+    const { error } = await supabase
+      .from("diary_entries")
+      .upsert({ user_id: user.id, date: dateKey, hour, content }, { onConflict: "user_id,date,hour" });
+
+    if (error) { toast.error("Failed to save"); console.error(error); return; }
     setSavedStatus((prev) => ({ ...prev, [hour]: true }));
     setTimeout(() => setSavedStatus((prev) => ({ ...prev, [hour]: false })), 2000);
   };
 
-  const saveAll = () => {
-    localStorage.setItem(`diary-${dateKey}`, JSON.stringify(entries));
+  const saveAll = async () => {
+    if (!user) return;
+    const rows = HOURS.filter(({ key }) => (entries[key] || "").trim())
+      .map(({ key }) => ({ user_id: user.id, date: dateKey, hour: key, content: entries[key] || "" }));
+
+    if (rows.length === 0) return;
+    const { error } = await supabase
+      .from("diary_entries")
+      .upsert(rows, { onConflict: "user_id,date,hour" });
+
+    if (error) { toast.error("Failed to save all"); console.error(error); return; }
     const allStatus: Record<number, boolean> = {};
     HOURS.forEach(({ key }) => { allStatus[key] = true; });
     setSavedStatus(allStatus);
     setAllSaved(true);
-    setTimeout(() => {
-      setSavedStatus({});
-      setAllSaved(false);
-    }, 2000);
+    setTimeout(() => { setSavedStatus({}); setAllSaved(false); }, 2000);
+  };
+
+  const savePhone = async () => {
+    if (!user) return;
+    const { error } = await supabase
+      .from("user_settings")
+      .upsert({ user_id: user.id, diary_phone: diaryPhone.trim() || null }, { onConflict: "user_id" });
+    if (error) { toast.error("Failed to save phone"); return; }
+    setPhoneSaved(true);
+    toast.success("Phone saved! You'll receive diary summaries at end of day.");
+    setTimeout(() => setPhoneSaved(false), 2000);
   };
 
   const hasEntries = Object.values(entries).some((v) => v.trim().length > 0);
@@ -82,14 +142,10 @@ const Diary = () => {
             </div>
             <div className="flex items-center gap-2">
               {!readOnly && (
-                <button
-                  onClick={saveAll}
+                <button onClick={saveAll}
                   className={`flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg transition-all ${
-                    allSaved
-                      ? "bg-[hsl(var(--priority-low))] text-card-foreground"
-                      : "glass-btn"
-                  }`}
-                >
+                    allSaved ? "bg-[hsl(var(--priority-low))] text-card-foreground" : "glass-btn"
+                  }`}>
                   <SaveAll className="w-4 h-4" />
                   {allSaved ? "All Saved!" : "Save All"}
                 </button>
@@ -102,62 +158,65 @@ const Diary = () => {
                   </button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 bg-[hsl(220,25%,12%)] border-[rgba(255,255,255,0.15)]" align="end">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={(d) => d && loadDate(d)}
-                    disabled={(date) => date > new Date()}
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto text-card-foreground")}
-                  />
+                  <Calendar mode="single" selected={selectedDate} onSelect={(d) => d && loadDate(d)}
+                    disabled={(date) => date > new Date()} initialFocus className={cn("p-3 pointer-events-auto text-card-foreground")} />
                 </PopoverContent>
               </Popover>
             </div>
           </div>
+
+          {/* Phone for end-of-day summary */}
+          <div className="mt-4 flex items-center gap-2">
+            <Phone className="w-4 h-4 text-card-foreground shrink-0" />
+            <input type="tel" className="glass-input flex-1" placeholder="Phone for end-of-day diary summary SMS"
+              value={diaryPhone} onChange={(e) => setDiaryPhone(e.target.value)} />
+            <button onClick={savePhone}
+              className={`shrink-0 text-sm font-medium px-4 py-2 rounded-lg transition-all ${
+                phoneSaved ? "bg-[hsl(var(--priority-low))] text-card-foreground" : "glass-btn-outline"
+              }`}>
+              {phoneSaved ? "Saved!" : "Save"}
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">📱 Receive a summary of your diary entries via SMS at end of day.</p>
         </div>
 
-        {!hasEntries && readOnly && (
+        {loading ? (
+          <div className="glass-card p-8 text-center">
+            <p className="text-muted-foreground animate-pulse">Loading...</p>
+          </div>
+        ) : !hasEntries && readOnly ? (
           <div className="glass-card p-8 text-center mb-3">
             <p className="text-muted-foreground">No diary entries for this date.</p>
           </div>
+        ) : (
+          <div className="space-y-3">
+            {HOURS.map(({ key, label }) => {
+              const value = entries[key] || "";
+              if (readOnly && !value.trim()) return null;
+              return (
+                <div key={key} className="glass-card p-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                  <span className="text-card-foreground font-semibold text-sm w-24 shrink-0">{label}</span>
+                  {readOnly ? (
+                    <p className="text-card-foreground/80 text-sm flex-1">{value}</p>
+                  ) : (
+                    <>
+                      <textarea className="glass-input flex-1 w-full resize-none min-h-[42px]" rows={1}
+                        placeholder="What did you do?" value={value}
+                        onChange={(e) => updateEntry(key, e.target.value)} maxLength={500} />
+                      <button onClick={() => saveEntry(key)}
+                        className={`shrink-0 flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-lg transition-all ${
+                          savedStatus[key] ? "bg-[hsl(var(--priority-low))] text-card-foreground" : "glass-btn-outline"
+                        }`}>
+                        <Save className="w-3.5 h-3.5" />
+                        {savedStatus[key] ? "Saved!" : "Save"}
+                      </button>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
-
-        <div className="space-y-3">
-          {HOURS.map(({ key, label }) => {
-            const value = entries[key] || "";
-            if (readOnly && !value.trim()) return null;
-            return (
-              <div key={key} className="glass-card p-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-                <span className="text-card-foreground font-semibold text-sm w-24 shrink-0">{label}</span>
-                {readOnly ? (
-                  <p className="text-card-foreground/80 text-sm flex-1">{value}</p>
-                ) : (
-                  <>
-                    <textarea
-                      className="glass-input flex-1 w-full resize-none min-h-[42px]"
-                      rows={1}
-                      placeholder="What did you do?"
-                      value={value}
-                      onChange={(e) => updateEntry(key, e.target.value)}
-                      maxLength={500}
-                    />
-                    <button
-                      onClick={() => saveEntry(key)}
-                      className={`shrink-0 flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-lg transition-all ${
-                        savedStatus[key]
-                          ? "bg-[hsl(var(--priority-low))] text-card-foreground"
-                          : "glass-btn-outline"
-                      }`}
-                    >
-                      <Save className="w-3.5 h-3.5" />
-                      {savedStatus[key] ? "Saved!" : "Save"}
-                    </button>
-                  </>
-                )}
-              </div>
-            );
-          })}
-        </div>
       </div>
     </div>
   );
