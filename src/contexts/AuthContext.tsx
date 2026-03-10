@@ -1,11 +1,15 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import type { User, Session } from "@supabase/supabase-js";
 
 interface AuthContextType {
   isAuthenticated: boolean;
+  user: User | null;
   email: string;
-  login: (email: string, password: string) => boolean;
-  register: (email: string, password: string) => string | null;
-  logout: () => void;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<string | null>;
+  register: (email: string, password: string) => Promise<string | null>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -16,52 +20,59 @@ export const useAuth = () => {
   return ctx;
 };
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    () => localStorage.getItem("isAuthenticated") === "true"
-  );
-  const [email, setEmail] = useState(
-    () => localStorage.getItem("userEmail") || ""
-  );
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const login = (emailInput: string, password: string) => {
-    const trimmed = emailInput.trim().toLowerCase();
-    if (!EMAIL_REGEX.test(trimmed) || password.trim().length < 4) return false;
-    const accounts: Record<string, string> = JSON.parse(localStorage.getItem("accounts") || "{}");
-    if (!accounts[trimmed] || accounts[trimmed] !== password) return false;
-    localStorage.setItem("isAuthenticated", "true");
-    localStorage.setItem("userEmail", trimmed);
-    setIsAuthenticated(true);
-    setEmail(trimmed);
-    return true;
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
+    );
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const login = async (email: string, password: string): Promise<string | null> => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+    return error ? error.message : null;
   };
 
-  const register = (emailInput: string, password: string): string | null => {
-    const trimmed = emailInput.trim().toLowerCase();
-    if (!EMAIL_REGEX.test(trimmed)) return "Invalid email address";
-    if (password.trim().length < 4) return "Password must be at least 4 characters";
-    const accounts: Record<string, string> = JSON.parse(localStorage.getItem("accounts") || "{}");
-    if (accounts[trimmed]) return "Account already exists";
-    accounts[trimmed] = password;
-    localStorage.setItem("accounts", JSON.stringify(accounts));
-    localStorage.setItem("isAuthenticated", "true");
-    localStorage.setItem("userEmail", trimmed);
-    setIsAuthenticated(true);
-    setEmail(trimmed);
-    return null;
+  const register = async (email: string, password: string): Promise<string | null> => {
+    const { error } = await supabase.auth.signUp({
+      email: email.trim().toLowerCase(),
+      password,
+      options: { emailRedirectTo: window.location.origin },
+    });
+    return error ? error.message : null;
   };
 
-  const logout = () => {
-    localStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("userEmail");
-    setIsAuthenticated(false);
-    setEmail("");
+  const logout = async () => {
+    await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, email, login, register, logout }}>
+    <AuthContext.Provider
+      value={{
+        isAuthenticated: !!user,
+        user,
+        email: user?.email || "",
+        loading,
+        login,
+        register,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
