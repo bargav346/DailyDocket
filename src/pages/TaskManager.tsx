@@ -131,6 +131,7 @@ const TaskManager = () => {
       .insert({
         text,
         priority,
+        due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
         due_time: dueTime || null,
         notify_phone: notifyPhone.trim() || null,
         notify_email: notifyEmail.trim() || null,
