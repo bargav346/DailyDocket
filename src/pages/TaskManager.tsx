@@ -152,6 +152,7 @@ const TaskManager = () => {
         text: data.text,
         priority: data.priority as Task["priority"],
         completed: data.completed,
+        dueDate: data.due_date || undefined,
         dueTime: data.due_time || undefined,
         notifyPhone: data.notify_phone || undefined,
         notifyEmail: data.notify_email || undefined,
@@ -161,7 +162,7 @@ const TaskManager = () => {
     ]);
     setNewTask("");
     setDueTime("");
-  };
+    setDueDate(undefined);
 
   const toggleComplete = async (id: string) => {
     const task = tasks.find((t) => t.id === id);
