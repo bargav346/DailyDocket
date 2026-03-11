@@ -15,6 +15,24 @@ const Login = () => {
   const [errors, setErrors] = useState<{ email?: string; password?: string; confirm?: string; general?: string }>({});
   const [submitting, setSubmitting] = useState(false);
   const [signUpSuccess, setSignUpSuccess] = useState(false);
+  const [forgotPassword, setForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetSent, setResetSent] = useState(false);
+  const [resetError, setResetError] = useState("");
+  const [resetSubmitting, setResetSubmitting] = useState(false);
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(resetEmail.trim())) { setResetError("Please enter a valid email"); return; }
+    setResetSubmitting(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.trim().toLowerCase(), {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setResetSubmitting(false);
+    if (error) { setResetError(error.message); return; }
+    setResetSent(true);
+  };
 
   if (loading) return null;
   if (isAuthenticated) return <Navigate to="/" replace />;
