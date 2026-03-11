@@ -60,6 +60,7 @@ const TaskManager = () => {
             text: t.text,
             priority: t.priority as Task["priority"],
             completed: t.completed,
+            dueDate: t.due_date || undefined,
             dueTime: t.due_time || undefined,
             notifyPhone: t.notify_phone || undefined,
             notifyEmail: t.notify_email || undefined,
