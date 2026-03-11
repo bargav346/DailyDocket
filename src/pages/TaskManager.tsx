@@ -266,6 +266,7 @@ const TaskManager = () => {
                 <div className="flex-1 min-w-0">
                   <p className={`text-card-foreground font-medium truncate ${task.completed ? "line-through opacity-70" : ""}`}>{task.text}</p>
                   <div className="flex flex-wrap gap-2 mt-0.5">
+                    {task.dueDate && <span className="text-muted-foreground text-xs flex items-center gap-1"><CalendarIcon className="w-3 h-3" /> {task.dueDate}</span>}
                     {task.dueTime && <span className="text-muted-foreground text-xs flex items-center gap-1"><Clock className="w-3 h-3" /> {task.dueTime}</span>}
                     {task.notifyPhone && <span className="text-muted-foreground text-xs flex items-center gap-1"><Phone className="w-3 h-3" /> {task.notifyPhone}</span>}
                     {task.notifyEmail && <span className="text-muted-foreground text-xs flex items-center gap-1"><Mail className="w-3 h-3" /> {task.notifyEmail}</span>}
