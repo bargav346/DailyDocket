@@ -1,15 +1,20 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Trash2, Check, Bell, BellOff, Clock, Mail, Phone } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Check, Bell, BellOff, Clock, Mail, Phone, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface Task {
   id: string;
   text: string;
   priority: "low" | "medium" | "high";
   completed: boolean;
+  dueDate?: string;
   dueTime?: string;
   notifyPhone?: string;
   notifyEmail?: string;
@@ -32,6 +37,7 @@ const TaskManager = () => {
   const [newTask, setNewTask] = useState("");
   const [priority, setPriority] = useState<Task["priority"]>("medium");
   const [dueTime, setDueTime] = useState("");
+  const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [notifyPhone, setNotifyPhone] = useState("");
   const [notifyEmail, setNotifyEmail] = useState("");
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -54,6 +60,7 @@ const TaskManager = () => {
             text: t.text,
             priority: t.priority as Task["priority"],
             completed: t.completed,
+            dueDate: t.due_date || undefined,
             dueTime: t.due_time || undefined,
             notifyPhone: t.notify_phone || undefined,
             notifyEmail: t.notify_email || undefined,
@@ -124,6 +131,7 @@ const TaskManager = () => {
       .insert({
         text,
         priority,
+        due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
         due_time: dueTime || null,
         notify_phone: notifyPhone.trim() || null,
         notify_email: notifyEmail.trim() || null,
@@ -144,6 +152,7 @@ const TaskManager = () => {
         text: data.text,
         priority: data.priority as Task["priority"],
         completed: data.completed,
+        dueDate: data.due_date || undefined,
         dueTime: data.due_time || undefined,
         notifyPhone: data.notify_phone || undefined,
         notifyEmail: data.notify_email || undefined,
@@ -153,6 +162,7 @@ const TaskManager = () => {
     ]);
     setNewTask("");
     setDueTime("");
+    setDueDate(undefined);
   };
 
   const toggleComplete = async (id: string) => {
@@ -200,7 +210,20 @@ const TaskManager = () => {
                 <option value="high">High</option>
               </select>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3">
+             <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex items-center gap-2 flex-1">
+                <CalendarIcon className="w-4 h-4 text-card-foreground shrink-0" />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className={cn("glass-input flex-1 text-left", !dueDate && "text-muted-foreground")}>
+                      {dueDate ? format(dueDate, "PPP") : "Pick a date"}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={dueDate} onSelect={setDueDate} initialFocus className={cn("p-3 pointer-events-auto")} />
+                  </PopoverContent>
+                </Popover>
+              </div>
               <div className="flex items-center gap-2 flex-1">
                 <Clock className="w-4 h-4 text-card-foreground shrink-0" />
                 <input type="time" className="glass-input flex-1" value={dueTime} onChange={(e) => setDueTime(e.target.value)} />
@@ -244,6 +267,7 @@ const TaskManager = () => {
                 <div className="flex-1 min-w-0">
                   <p className={`text-card-foreground font-medium truncate ${task.completed ? "line-through opacity-70" : ""}`}>{task.text}</p>
                   <div className="flex flex-wrap gap-2 mt-0.5">
+                    {task.dueDate && <span className="text-muted-foreground text-xs flex items-center gap-1"><CalendarIcon className="w-3 h-3" /> {task.dueDate}</span>}
                     {task.dueTime && <span className="text-muted-foreground text-xs flex items-center gap-1"><Clock className="w-3 h-3" /> {task.dueTime}</span>}
                     {task.notifyPhone && <span className="text-muted-foreground text-xs flex items-center gap-1"><Phone className="w-3 h-3" /> {task.notifyPhone}</span>}
                     {task.notifyEmail && <span className="text-muted-foreground text-xs flex items-center gap-1"><Mail className="w-3 h-3" /> {task.notifyEmail}</span>}
