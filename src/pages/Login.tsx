@@ -103,10 +103,37 @@ const Login = () => {
             </p>
           </div>
 
-          {signUpSuccess ? (
+          {forgotPassword ? (
+            resetSent ? (
+              <div className="text-center space-y-4">
+                <p className="text-card-foreground font-medium">✅ Reset link sent!</p>
+                <p className="text-muted-foreground text-sm">Check your email for a password reset link.</p>
+                <button onClick={() => { setForgotPassword(false); setResetSent(false); setResetEmail(""); }} className="glass-btn w-full py-3">Back to Sign In</button>
+              </div>
+            ) : (
+              <>
+                <form onSubmit={handleForgotPassword} className="space-y-5">
+                  <div>
+                    <label className="block text-card-foreground text-sm font-medium mb-1.5">Email</label>
+                    <input type="email" className="glass-input w-full" placeholder="you@example.com"
+                      value={resetEmail} onChange={(e) => { setResetEmail(e.target.value); setResetError(""); }} maxLength={100} />
+                    {resetError && <p className="text-destructive text-xs mt-1">{resetError}</p>}
+                  </div>
+                  <button type="submit" disabled={resetSubmitting} className="glass-btn w-full py-3 text-base disabled:opacity-50">
+                    {resetSubmitting ? "Please wait..." : "Send Reset Link"}
+                  </button>
+                </form>
+                <p className="text-center text-muted-foreground text-sm mt-6">
+                  <button onClick={() => { setForgotPassword(false); setResetError(""); }} className="text-card-foreground underline hover:opacity-80 transition-opacity">
+                    Back to Sign In
+                  </button>
+                </p>
+              </>
+            )
+          ) : signUpSuccess ? (
             <div className="text-center space-y-4">
               <p className="text-card-foreground font-medium">✅ Account created!</p>
-              <p className="text-muted-foreground text-sm">Please check your email to verify your account, then sign in.</p>
+              <p className="text-muted-foreground text-sm">You can now sign in with your credentials.</p>
               <button onClick={switchMode} className="glass-btn w-full py-3">Go to Sign In</button>
             </div>
           ) : (
@@ -137,7 +164,14 @@ const Login = () => {
                   {submitting ? "Please wait..." : isSignUp ? "Create Account" : "Sign In"}
                 </button>
               </form>
-              <p className="text-center text-muted-foreground text-sm mt-6">
+              {!isSignUp && (
+                <p className="text-center mt-3">
+                  <button onClick={() => setForgotPassword(true)} className="text-muted-foreground text-sm underline hover:text-card-foreground transition-colors">
+                    Forgot password?
+                  </button>
+                </p>
+              )}
+              <p className="text-center text-muted-foreground text-sm mt-4">
                 {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
                 <button onClick={switchMode} className="text-card-foreground underline hover:opacity-80 transition-opacity">
                   {isSignUp ? "Sign In" : "Create Account"}
