@@ -14,6 +14,7 @@ interface Task {
   text: string;
   priority: "low" | "medium" | "high";
   completed: boolean;
+  dueDate?: string;
   dueTime?: string;
   notifyPhone?: string;
   notifyEmail?: string;
