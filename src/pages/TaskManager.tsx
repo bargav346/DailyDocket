@@ -209,7 +209,20 @@ const TaskManager = () => {
                 <option value="high">High</option>
               </select>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3">
+             <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex items-center gap-2 flex-1">
+                <CalendarIcon className="w-4 h-4 text-card-foreground shrink-0" />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className={cn("glass-input flex-1 text-left", !dueDate && "text-muted-foreground")}>
+                      {dueDate ? format(dueDate, "PPP") : "Pick a date"}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={dueDate} onSelect={setDueDate} initialFocus className={cn("p-3 pointer-events-auto")} />
+                  </PopoverContent>
+                </Popover>
+              </div>
               <div className="flex items-center gap-2 flex-1">
                 <Clock className="w-4 h-4 text-card-foreground shrink-0" />
                 <input type="time" className="glass-input flex-1" value={dueTime} onChange={(e) => setDueTime(e.target.value)} />
