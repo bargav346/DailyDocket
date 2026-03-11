@@ -37,6 +37,7 @@ const TaskManager = () => {
   const [newTask, setNewTask] = useState("");
   const [priority, setPriority] = useState<Task["priority"]>("medium");
   const [dueTime, setDueTime] = useState("");
+  const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [notifyPhone, setNotifyPhone] = useState("");
   const [notifyEmail, setNotifyEmail] = useState("");
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
