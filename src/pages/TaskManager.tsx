@@ -163,6 +163,7 @@ const TaskManager = () => {
     setNewTask("");
     setDueTime("");
     setDueDate(undefined);
+  };
 
   const toggleComplete = async (id: string) => {
     const task = tasks.find((t) => t.id === id);
