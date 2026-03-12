@@ -21,6 +21,7 @@ interface Task {
   notifyPhone?: string;
   notifyEmail?: string;
   sentReminders: number[];
+  createdAt?: string;
 }
 
 const PRIORITY_STYLES = {
