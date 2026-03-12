@@ -9,13 +9,19 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { existingTasks } = await req.json();
+    const { existingTasks, userQuery } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const taskList = (existingTasks || [])
       .map((t: any) => `- ${t.text} (priority: ${t.priority}, ${t.completed ? "done" : "pending"})`)
       .join("\n");
+
+    const userMessage = userQuery
+      ? `Here are my current tasks:\n${taskList || "(none)"}\n\nUser request: ${userQuery}\n\nBased on my request, suggest 3-5 relevant actionable tasks.`
+      : taskList
+        ? `Here are my current tasks:\n${taskList}\n\nSuggest new tasks I should add.`
+        : "I have no tasks yet. Suggest some productive tasks to get started with my day.";
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -28,21 +34,16 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: "You are a productivity assistant. Based on the user's existing tasks, suggest 3-5 new actionable tasks they might want to add. Return suggestions using the suggest_tasks tool.",
+            content: "You are a productivity assistant. Based on the user's existing tasks and their specific request or question, suggest 3-5 new actionable tasks they should add. Tailor suggestions to their request if provided. Return suggestions using the suggest_tasks tool.",
           },
-          {
-            role: "user",
-            content: taskList
-              ? `Here are my current tasks:\n${taskList}\n\nSuggest new tasks I should add.`
-              : "I have no tasks yet. Suggest some productive tasks to get started with my day.",
-          },
+          { role: "user", content: userMessage },
         ],
         tools: [
           {
             type: "function",
             function: {
               name: "suggest_tasks",
-              description: "Return 3-5 actionable task suggestions.",
+              description: "Return 3-5 actionable task suggestions based on the user's request.",
               parameters: {
                 type: "object",
                 properties: {
