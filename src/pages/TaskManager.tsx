@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import TaskStreak from "@/components/TaskStreak";
+import AiSuggestions from "@/components/AiSuggestions";
 
 interface Task {
   id: string;
@@ -19,6 +21,7 @@ interface Task {
   notifyPhone?: string;
   notifyEmail?: string;
   sentReminders: number[];
+  createdAt?: string;
 }
 
 const PRIORITY_STYLES = {
@@ -65,6 +68,7 @@ const TaskManager = () => {
             notifyPhone: t.notify_phone || undefined,
             notifyEmail: t.notify_email || undefined,
             sentReminders: [],
+            createdAt: t.created_at,
           }))
         );
       }
@@ -157,6 +161,7 @@ const TaskManager = () => {
         notifyPhone: data.notify_phone || undefined,
         notifyEmail: data.notify_email || undefined,
         sentReminders: [],
+        createdAt: data.created_at,
       },
       ...prev,
     ]);
@@ -165,7 +170,21 @@ const TaskManager = () => {
     setDueDate(undefined);
   };
 
-  const toggleComplete = async (id: string) => {
+  const addTaskFromSuggestion = async (text: string, suggestedPriority: "low" | "medium" | "high") => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("tasks")
+      .insert({ text, priority: suggestedPriority, user_id: user.id })
+      .select()
+      .single();
+    if (error) { toast.error("Failed to add task"); return; }
+    setTasks((prev) => [
+      { id: data.id, text: data.text, priority: data.priority as Task["priority"], completed: data.completed, dueDate: data.due_date || undefined, dueTime: data.due_time || undefined, notifyPhone: data.notify_phone || undefined, notifyEmail: data.notify_email || undefined, sentReminders: [], createdAt: data.created_at },
+      ...prev,
+    ]);
+  };
+
+
     const task = tasks.find((t) => t.id === id);
     if (!task) return;
     const { error } = await supabase
@@ -197,6 +216,13 @@ const TaskManager = () => {
             {notificationsEnabled ? "Notifications On" : "Notifications Off"}
           </button>
         </div>
+
+        <TaskStreak tasks={tasks.map(t => ({ completed: t.completed, dueDate: t.dueDate, createdAt: t.createdAt }))} />
+
+        <AiSuggestions
+          existingTasks={tasks.map(t => ({ text: t.text, priority: t.priority, completed: t.completed }))}
+          onAddTask={addTaskFromSuggestion}
+        />
 
         <div className="glass-card p-6 sm:p-8 mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-card-foreground mb-6">Task Manager</h1>
