@@ -218,7 +218,7 @@ const TaskManager = () => {
           </button>
         </div>
 
-        <TaskStreak tasks={tasks.map(t => ({ completed: t.completed, dueDate: t.dueDate, createdAt: t.createdAt }))} />
+        <TaskStreak tasks={tasks.map(t => ({ completed: t.completed, dueDate: t.dueDate, createdAt: t.createdAt }))} totalTasks={tasks.length} />
 
         <AiSuggestions
           existingTasks={tasks.map(t => ({ text: t.text, priority: t.priority, completed: t.completed }))}
