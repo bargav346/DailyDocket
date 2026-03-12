@@ -185,6 +185,7 @@ const TaskManager = () => {
   };
 
 
+  const toggleComplete = async (id: string) => {
     const task = tasks.find((t) => t.id === id);
     if (!task) return;
     const { error } = await supabase

@@ -3,6 +3,7 @@ import { Flame } from "lucide-react";
 
 interface TaskStreakProps {
   tasks: { completed: boolean; dueDate?: string; createdAt?: string }[];
+  totalTasks: number;
 }
 
 const TaskStreak = ({ tasks }: TaskStreakProps) => {
