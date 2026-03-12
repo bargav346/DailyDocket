@@ -68,6 +68,7 @@ const TaskManager = () => {
             notifyPhone: t.notify_phone || undefined,
             notifyEmail: t.notify_email || undefined,
             sentReminders: [],
+            createdAt: t.created_at,
           }))
         );
       }
