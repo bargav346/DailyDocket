@@ -203,6 +203,13 @@ const TaskManager = () => {
           </button>
         </div>
 
+        <TaskStreak tasks={tasks.map(t => ({ completed: t.completed, dueDate: t.dueDate, createdAt: t.createdAt }))} />
+
+        <AiSuggestions
+          existingTasks={tasks.map(t => ({ text: t.text, priority: t.priority, completed: t.completed }))}
+          onAddTask={addTaskFromSuggestion}
+        />
+
         <div className="glass-card p-6 sm:p-8 mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-card-foreground mb-6">Task Manager</h1>
           <div className="flex flex-col gap-3 mb-2">
