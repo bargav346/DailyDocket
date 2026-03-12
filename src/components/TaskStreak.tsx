@@ -3,9 +3,10 @@ import { Flame } from "lucide-react";
 
 interface TaskStreakProps {
   tasks: { completed: boolean; dueDate?: string; createdAt?: string }[];
+  totalTasks: number;
 }
 
-const TaskStreak = ({ tasks }: TaskStreakProps) => {
+const TaskStreak = ({ tasks, totalTasks }: TaskStreakProps) => {
   const { streak, totalCompleted } = useMemo(() => {
     const completedDates = new Set<string>();
     for (const t of tasks) {
@@ -34,7 +35,7 @@ const TaskStreak = ({ tasks }: TaskStreakProps) => {
   const flameColor = streak >= 7 ? "text-orange-400" : streak >= 3 ? "text-yellow-400" : "text-muted-foreground";
 
   return (
-    <div className="glass-card p-4 flex items-center gap-4 mb-6">
+    <div className="glass-card p-4 flex items-center gap-4 mb-6 flex-wrap">
       <div className="flex items-center gap-2">
         <Flame className={`w-8 h-8 ${flameColor} ${streak > 0 ? "animate-pulse" : ""}`} />
         <div>
@@ -44,8 +45,13 @@ const TaskStreak = ({ tasks }: TaskStreakProps) => {
       </div>
       <div className="h-8 w-px bg-[rgba(255,255,255,0.2)]" />
       <div>
+        <p className="text-card-foreground text-lg font-semibold leading-none">{totalTasks}</p>
+        <p className="text-muted-foreground text-xs">total tasks</p>
+      </div>
+      <div className="h-8 w-px bg-[rgba(255,255,255,0.2)]" />
+      <div>
         <p className="text-card-foreground text-lg font-semibold leading-none">{totalCompleted}</p>
-        <p className="text-muted-foreground text-xs">tasks done</p>
+        <p className="text-muted-foreground text-xs">completed</p>
       </div>
       {streak >= 7 && (
         <span className="ml-auto text-xs bg-[hsl(var(--priority-medium))] text-card-foreground px-2 py-1 rounded-full font-medium">
