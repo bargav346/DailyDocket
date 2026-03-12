@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import TaskStreak from "@/components/TaskStreak";
+import AiSuggestions from "@/components/AiSuggestions";
 
 interface Task {
   id: string;
