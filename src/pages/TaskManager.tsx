@@ -161,6 +161,7 @@ const TaskManager = () => {
         notifyPhone: data.notify_phone || undefined,
         notifyEmail: data.notify_email || undefined,
         sentReminders: [],
+        createdAt: data.created_at,
       },
       ...prev,
     ]);
