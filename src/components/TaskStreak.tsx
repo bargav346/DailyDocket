@@ -6,7 +6,7 @@ interface TaskStreakProps {
   totalTasks: number;
 }
 
-const TaskStreak = ({ tasks }: TaskStreakProps) => {
+const TaskStreak = ({ tasks, totalTasks }: TaskStreakProps) => {
   const { streak, totalCompleted } = useMemo(() => {
     const completedDates = new Set<string>();
     for (const t of tasks) {
