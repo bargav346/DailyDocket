@@ -91,18 +91,21 @@ export type Database = {
           created_at: string
           diary_phone: string | null
           id: string
+          task_phone: string | null
           user_id: string
         }
         Insert: {
           created_at?: string
           diary_phone?: string | null
           id?: string
+          task_phone?: string | null
           user_id: string
         }
         Update: {
           created_at?: string
           diary_phone?: string | null
           id?: string
+          task_phone?: string | null
           user_id?: string
         }
         Relationships: []

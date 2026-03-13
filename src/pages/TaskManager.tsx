@@ -44,6 +44,45 @@ const TaskManager = () => {
   const [notifyPhone, setNotifyPhone] = useState("");
   const [notifyEmail, setNotifyEmail] = useState("");
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [defaultPhone, setDefaultPhone] = useState("");
+  const [showPhonePrompt, setShowPhonePrompt] = useState(false);
+
+  // Fetch default phone from user_settings
+  useEffect(() => {
+    if (!user) return;
+    const fetchSettings = async () => {
+      const { data } = await supabase
+        .from("user_settings")
+        .select("task_phone")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data?.task_phone) {
+        setDefaultPhone(data.task_phone);
+        setNotifyPhone(data.task_phone);
+      } else {
+        setShowPhonePrompt(true);
+      }
+    };
+    fetchSettings();
+  }, [user]);
+
+  const saveDefaultPhone = async (phone: string) => {
+    if (!user || !phone.trim()) return;
+    const { data: existing } = await supabase
+      .from("user_settings")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (existing) {
+      await supabase.from("user_settings").update({ task_phone: phone.trim() }).eq("user_id", user.id);
+    } else {
+      await supabase.from("user_settings").insert({ user_id: user.id, task_phone: phone.trim() });
+    }
+    setDefaultPhone(phone.trim());
+    setNotifyPhone(phone.trim());
+    setShowPhonePrompt(false);
+    toast.success("Default phone number saved!");
+  };
 
   // Fetch tasks from DB
   useEffect(() => {
@@ -217,6 +256,34 @@ const TaskManager = () => {
             {notificationsEnabled ? "Notifications On" : "Notifications Off"}
           </button>
         </div>
+
+        {showPhonePrompt && (
+          <div className="glass-card p-4 mb-6 space-y-3 animate-fade-in">
+            <p className="text-card-foreground text-sm font-semibold">📱 Set your default phone number for task reminders</p>
+            <p className="text-muted-foreground text-xs">This will be auto-filled for all new tasks so you always get SMS reminders.</p>
+            <div className="flex gap-2">
+              <input
+                type="tel"
+                className="glass-input flex-1"
+                placeholder="e.g. +91..."
+                id="default-phone-input"
+              />
+              <button
+                onClick={() => {
+                  const input = document.getElementById("default-phone-input") as HTMLInputElement;
+                  if (input?.value.trim()) saveDefaultPhone(input.value);
+                  else toast.error("Please enter a phone number");
+                }}
+                className="glass-btn text-sm"
+              >
+                Save
+              </button>
+              <button onClick={() => setShowPhonePrompt(false)} className="glass-btn-outline text-sm">
+                Skip
+              </button>
+            </div>
+          </div>
+        )}
 
         <TaskStreak tasks={tasks.map(t => ({ completed: t.completed, dueDate: t.dueDate, createdAt: t.createdAt }))} totalTasks={tasks.length} />
 
