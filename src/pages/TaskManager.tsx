@@ -259,8 +259,8 @@ const TaskManager = () => {
 
         {showPhonePrompt && (
           <div className="glass-card p-4 mb-6 space-y-3 animate-fade-in">
-            <p className="text-card-foreground text-sm font-semibold">📱 Set your default phone number for task reminders</p>
-            <p className="text-muted-foreground text-xs">This will be auto-filled for all new tasks so you always get SMS reminders.</p>
+            <p className="text-card-foreground text-sm font-semibold">📱 Set your phone number for reminders</p>
+            <p className="text-muted-foreground text-xs">Used for both task reminders and diary summaries.</p>
             <div className="flex gap-2">
               <input
                 type="tel"
