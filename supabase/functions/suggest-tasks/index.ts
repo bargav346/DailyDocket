@@ -17,11 +17,13 @@ serve(async (req) => {
       .map((t: any) => `- ${t.text} (priority: ${t.priority}, ${t.completed ? "done" : "pending"})`)
       .join("\n");
 
+    const today = new Date().toISOString().split("T")[0];
+
     const userMessage = userQuery
-      ? `Here are my current tasks:\n${taskList || "(none)"}\n\nUser request: ${userQuery}\n\nBased on my request, suggest 3-5 relevant actionable tasks.`
+      ? `Today is ${today}. Here are my current tasks:\n${taskList || "(none)"}\n\nUser request: ${userQuery}\n\nBased on my request, suggest 3-5 relevant actionable tasks with appropriate due dates and times.`
       : taskList
-        ? `Here are my current tasks:\n${taskList}\n\nSuggest new tasks I should add.`
-        : "I have no tasks yet. Suggest some productive tasks to get started with my day.";
+        ? `Today is ${today}. Here are my current tasks:\n${taskList}\n\nSuggest new tasks I should add with appropriate due dates and times.`
+        : `Today is ${today}. I have no tasks yet. Suggest some productive tasks to get started with my day, with appropriate due dates and times.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -34,7 +36,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: "You are a productivity assistant. Based on the user's existing tasks and their specific request or question, suggest 3-5 new actionable tasks they should add. Tailor suggestions to their request if provided. Return suggestions using the suggest_tasks tool.",
+            content: `You are a productivity assistant. Based on the user's existing tasks and their specific request, suggest 3-5 new actionable tasks. For each task, suggest a realistic due date (YYYY-MM-DD format, today or future) and due time (HH:MM 24h format). Return suggestions using the suggest_tasks tool.`,
           },
           { role: "user", content: userMessage },
         ],
@@ -43,7 +45,7 @@ serve(async (req) => {
             type: "function",
             function: {
               name: "suggest_tasks",
-              description: "Return 3-5 actionable task suggestions based on the user's request.",
+              description: "Return 3-5 actionable task suggestions with due dates and times.",
               parameters: {
                 type: "object",
                 properties: {
@@ -54,6 +56,8 @@ serve(async (req) => {
                       properties: {
                         title: { type: "string" },
                         priority: { type: "string", enum: ["low", "medium", "high"] },
+                        dueDate: { type: "string", description: "YYYY-MM-DD format" },
+                        dueTime: { type: "string", description: "HH:MM 24h format" },
                       },
                       required: ["title", "priority"],
                       additionalProperties: false,
