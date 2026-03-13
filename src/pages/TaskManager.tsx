@@ -47,18 +47,18 @@ const TaskManager = () => {
   const [defaultPhone, setDefaultPhone] = useState("");
   const [showPhonePrompt, setShowPhonePrompt] = useState(false);
 
-  // Fetch default phone from user_settings
+  // Fetch default phone from user_settings (shared with diary)
   useEffect(() => {
     if (!user) return;
     const fetchSettings = async () => {
       const { data } = await supabase
         .from("user_settings")
-        .select("task_phone")
+        .select("diary_phone")
         .eq("user_id", user.id)
         .maybeSingle();
-      if (data?.task_phone) {
-        setDefaultPhone(data.task_phone);
-        setNotifyPhone(data.task_phone);
+      if (data?.diary_phone) {
+        setDefaultPhone(data.diary_phone);
+        setNotifyPhone(data.diary_phone);
       } else {
         setShowPhonePrompt(true);
       }
@@ -74,9 +74,9 @@ const TaskManager = () => {
       .eq("user_id", user.id)
       .maybeSingle();
     if (existing) {
-      await supabase.from("user_settings").update({ task_phone: phone.trim() }).eq("user_id", user.id);
+      await supabase.from("user_settings").update({ diary_phone: phone.trim() }).eq("user_id", user.id);
     } else {
-      await supabase.from("user_settings").insert({ user_id: user.id, task_phone: phone.trim() });
+      await supabase.from("user_settings").insert({ user_id: user.id, diary_phone: phone.trim() });
     }
     setDefaultPhone(phone.trim());
     setNotifyPhone(phone.trim());
@@ -259,8 +259,8 @@ const TaskManager = () => {
 
         {showPhonePrompt && (
           <div className="glass-card p-4 mb-6 space-y-3 animate-fade-in">
-            <p className="text-card-foreground text-sm font-semibold">📱 Set your default phone number for task reminders</p>
-            <p className="text-muted-foreground text-xs">This will be auto-filled for all new tasks so you always get SMS reminders.</p>
+            <p className="text-card-foreground text-sm font-semibold">📱 Set your phone number for reminders</p>
+            <p className="text-muted-foreground text-xs">Used for both task reminders and diary summaries.</p>
             <div className="flex gap-2">
               <input
                 type="tel"
