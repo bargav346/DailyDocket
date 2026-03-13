@@ -170,11 +170,11 @@ const TaskManager = () => {
     setDueDate(undefined);
   };
 
-  const addTaskFromSuggestion = async (text: string, suggestedPriority: "low" | "medium" | "high") => {
+  const addTaskFromSuggestion = async (text: string, suggestedPriority: "low" | "medium" | "high", suggestedDate?: string, suggestedTime?: string) => {
     if (!user) return;
     const { data, error } = await supabase
       .from("tasks")
-      .insert({ text, priority: suggestedPriority, user_id: user.id })
+      .insert({ text, priority: suggestedPriority, due_date: suggestedDate || null, due_time: suggestedTime || null, user_id: user.id })
       .select()
       .single();
     if (error) { toast.error("Failed to add task"); return; }
