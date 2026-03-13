@@ -257,6 +257,34 @@ const TaskManager = () => {
           </button>
         </div>
 
+        {showPhonePrompt && (
+          <div className="glass-card p-4 mb-6 space-y-3 animate-fade-in">
+            <p className="text-card-foreground text-sm font-semibold">📱 Set your default phone number for task reminders</p>
+            <p className="text-muted-foreground text-xs">This will be auto-filled for all new tasks so you always get SMS reminders.</p>
+            <div className="flex gap-2">
+              <input
+                type="tel"
+                className="glass-input flex-1"
+                placeholder="e.g. +91..."
+                id="default-phone-input"
+              />
+              <button
+                onClick={() => {
+                  const input = document.getElementById("default-phone-input") as HTMLInputElement;
+                  if (input?.value.trim()) saveDefaultPhone(input.value);
+                  else toast.error("Please enter a phone number");
+                }}
+                className="glass-btn text-sm"
+              >
+                Save
+              </button>
+              <button onClick={() => setShowPhonePrompt(false)} className="glass-btn-outline text-sm">
+                Skip
+              </button>
+            </div>
+          </div>
+        )}
+
         <TaskStreak tasks={tasks.map(t => ({ completed: t.completed, dueDate: t.dueDate, createdAt: t.createdAt }))} totalTasks={tasks.length} />
 
         <AiSuggestions
