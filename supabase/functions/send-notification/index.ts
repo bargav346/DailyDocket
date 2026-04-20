@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { taskText, priority, dueTime, phone, email, minutesBefore } = await req.json();
+    const { taskText, priority, dueTime, email, minutesBefore } = await req.json();
 
     if (!taskText) {
       return new Response(JSON.stringify({ error: "taskText is required" }), {
@@ -21,76 +21,57 @@ serve(async (req) => {
       });
     }
 
-    const results: { sms?: string; email?: string } = {};
-
-    // Send SMS via MessageBird
-    if (phone) {
-      const MESSAGEBIRD_API_KEY = Deno.env.get("MESSAGEBIRD_API_KEY");
-      if (MESSAGEBIRD_API_KEY) {
-        const timeLabel = minutesBefore !== undefined ? `${minutesBefore} min before` : "now";
-        const smsBody = `⏰ Task Reminder (${timeLabel}): "${taskText}" | Priority: ${(priority || "medium").toUpperCase()}${dueTime ? ` | Due: ${dueTime}` : ""}`;
-
-        const params = new URLSearchParams();
-        params.append("originator", "TaskMgr");
-        params.append("recipients", phone);
-        params.append("body", smsBody);
-
-        const smsRes = await fetch("https://rest.messagebird.com/messages", {
-          method: "POST",
-          headers: {
-            Authorization: `AccessKey ${MESSAGEBIRD_API_KEY}`,
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: params.toString(),
-        });
-        const smsResponseBody = await smsRes.text();
-        results.sms = smsRes.ok ? "sent" : `failed: ${smsRes.status} - ${smsResponseBody}`;
-        console.log("MessageBird SMS result:", results.sms);
-      } else {
-        results.sms = "no MESSAGEBIRD_API_KEY configured";
-      }
+    if (!email) {
+      return new Response(JSON.stringify({ error: "email is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Send email via Resend (optional)
-    if (email) {
-      const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-      if (RESEND_API_KEY) {
-        const emailRes = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${RESEND_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from: "Task Manager <onboarding@resend.dev>",
-            to: [email],
-            subject: `⏰ Task Due: ${taskText}`,
-            html: `
-              <div style="font-family: 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #ffffff; border-radius: 12px;">
-                <h2 style="color: #1a1a2e; margin-bottom: 16px;">⏰ Task Reminder</h2>
-                <div style="background: #f4f0ff; padding: 20px; border-radius: 8px; margin-bottom: 16px;">
-                  <p style="font-size: 18px; font-weight: 600; color: #1a1a2e; margin: 0 0 8px 0;">${taskText}</p>
-                  <p style="color: #666; margin: 4px 0;">Priority: <strong>${(priority || "medium").toUpperCase()}</strong></p>
-                  ${dueTime ? `<p style="color: #666; margin: 4px 0;">Due at: <strong>${dueTime}</strong></p>` : ""}
-                </div>
-                <p style="color: #999; font-size: 12px;">Sent from your Task Manager app</p>
-              </div>
-            `,
-          }),
-        });
-        const emailBody = await emailRes.text();
-        results.email = emailRes.ok ? "sent" : `failed: ${emailRes.status} - ${emailBody}`;
-      } else {
-        results.email = "no RESEND_API_KEY configured";
-      }
+    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+    if (!RESEND_API_KEY) {
+      return new Response(JSON.stringify({ error: "no RESEND_API_KEY configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    return new Response(JSON.stringify({ success: true, results }), {
+    const timeLabel = minutesBefore !== undefined ? `${minutesBefore} min before` : "now";
+
+    const emailRes = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "Task Manager <onboarding@resend.dev>",
+        to: [email],
+        subject: `⏰ Task Reminder (${timeLabel}): ${taskText}`,
+        html: `
+          <div style="font-family: 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #ffffff; border-radius: 12px;">
+            <h2 style="color: #1a1a2e; margin-bottom: 16px;">⏰ Task Reminder (${timeLabel})</h2>
+            <div style="background: #f4f0ff; padding: 20px; border-radius: 8px; margin-bottom: 16px;">
+              <p style="font-size: 18px; font-weight: 600; color: #1a1a2e; margin: 0 0 8px 0;">${taskText}</p>
+              <p style="color: #666; margin: 4px 0;">Priority: <strong>${(priority || "medium").toUpperCase()}</strong></p>
+              ${dueTime ? `<p style="color: #666; margin: 4px 0;">Due at: <strong>${dueTime}</strong></p>` : ""}
+            </div>
+            <p style="color: #999; font-size: 12px;">Sent from your Task Manager app</p>
+          </div>
+        `,
+      }),
+    });
+
+    const body = await emailRes.text();
+    const status = emailRes.ok ? "sent" : `failed: ${emailRes.status} - ${body}`;
+    console.log("Resend email result:", status);
+
+    return new Response(JSON.stringify({ success: emailRes.ok, results: { email: status } }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("Error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

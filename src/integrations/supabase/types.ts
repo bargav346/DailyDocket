@@ -89,6 +89,7 @@ export type Database = {
       user_settings: {
         Row: {
           created_at: string
+          diary_email: string | null
           diary_phone: string | null
           id: string
           task_phone: string | null
@@ -96,6 +97,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          diary_email?: string | null
           diary_phone?: string | null
           id?: string
           task_phone?: string | null
@@ -103,6 +105,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          diary_email?: string | null
           diary_phone?: string | null
           id?: string
           task_phone?: string | null
