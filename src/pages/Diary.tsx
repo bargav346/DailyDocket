@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, SaveAll, CalendarIcon, Phone } from "lucide-react";
+import { ArrowLeft, Save, SaveAll, CalendarIcon, Mail } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
@@ -21,7 +21,7 @@ const isToday = (d: Date) => toDateKey(d) === toDateKey(new Date());
 
 const Diary = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, email: userEmail } = useAuth();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const dateKey = toDateKey(selectedDate);
   const readOnly = !isToday(selectedDate);
@@ -30,8 +30,8 @@ const Diary = () => {
   const [savedStatus, setSavedStatus] = useState<Record<number, boolean>>({});
   const [allSaved, setAllSaved] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [diaryPhone, setDiaryPhone] = useState("");
-  const [phoneSaved, setPhoneSaved] = useState(false);
+  const [diaryEmail, setDiaryEmail] = useState("");
+  const [emailSaved, setEmailSaved] = useState(false);
 
   // Load entries from DB
   useEffect(() => {
@@ -56,18 +56,19 @@ const Diary = () => {
     load();
   }, [user, dateKey]);
 
-  // Load phone setting
+  // Load email setting (fallback to auth email)
   useEffect(() => {
     if (!user) return;
     supabase
       .from("user_settings")
-      .select("diary_phone")
+      .select("diary_email")
       .eq("user_id", user.id)
       .maybeSingle()
-      .then(({ data }) => {
-        if (data?.diary_phone) setDiaryPhone(data.diary_phone);
+      .then(({ data }: any) => {
+        if (data?.diary_email) setDiaryEmail(data.diary_email);
+        else if (userEmail) setDiaryEmail(userEmail);
       });
-  }, [user]);
+  }, [user, userEmail]);
 
   const loadDate = (date: Date) => {
     setSelectedDate(date);
@@ -111,15 +112,15 @@ const Diary = () => {
     setTimeout(() => { setSavedStatus({}); setAllSaved(false); }, 2000);
   };
 
-  const savePhone = async () => {
+  const saveEmail = async () => {
     if (!user) return;
     const { error } = await supabase
       .from("user_settings")
-      .upsert({ user_id: user.id, diary_phone: diaryPhone.trim() || null }, { onConflict: "user_id" });
-    if (error) { toast.error("Failed to save phone"); return; }
-    setPhoneSaved(true);
-    toast.success("Phone saved! You'll receive diary summaries at end of day.");
-    setTimeout(() => setPhoneSaved(false), 2000);
+      .upsert({ user_id: user.id, diary_email: diaryEmail.trim() || null } as any, { onConflict: "user_id" });
+    if (error) { toast.error("Failed to save email"); return; }
+    setEmailSaved(true);
+    toast.success("Email saved! You'll receive diary summaries at end of day.");
+    setTimeout(() => setEmailSaved(false), 2000);
   };
 
   const hasEntries = Object.values(entries).some((v) => v.trim().length > 0);
@@ -165,19 +166,19 @@ const Diary = () => {
             </div>
           </div>
 
-          {/* Phone for end-of-day summary */}
+          {/* Email for end-of-day summary */}
           <div className="mt-4 flex items-center gap-2">
-            <Phone className="w-4 h-4 text-card-foreground shrink-0" />
-            <input type="tel" className="glass-input flex-1" placeholder="Phone for end-of-day diary summary SMS"
-              value={diaryPhone} onChange={(e) => setDiaryPhone(e.target.value)} />
-            <button onClick={savePhone}
+            <Mail className="w-4 h-4 text-card-foreground shrink-0" />
+            <input type="email" className="glass-input flex-1" placeholder="Email for end-of-day diary summary"
+              value={diaryEmail} onChange={(e) => setDiaryEmail(e.target.value)} />
+            <button onClick={saveEmail}
               className={`shrink-0 text-sm font-medium px-4 py-2 rounded-lg transition-all ${
-                phoneSaved ? "bg-[hsl(var(--priority-low))] text-card-foreground" : "glass-btn-outline"
+                emailSaved ? "bg-[hsl(var(--priority-low))] text-card-foreground" : "glass-btn-outline"
               }`}>
-              {phoneSaved ? "Saved!" : "Save"}
+              {emailSaved ? "Saved!" : "Save"}
             </button>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">📱 Receive a summary of your diary entries via SMS at end of day.</p>
+          <p className="text-xs text-muted-foreground mt-1">📧 Receive a summary of your diary entries via email at end of day.</p>
         </div>
 
         {loading ? (

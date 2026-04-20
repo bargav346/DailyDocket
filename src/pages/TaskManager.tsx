@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Trash2, Check, Bell, BellOff, Clock, Mail, Phone, CalendarIcon } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Check, Bell, BellOff, Clock, Mail, CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,7 +18,6 @@ interface Task {
   completed: boolean;
   dueDate?: string;
   dueTime?: string;
-  notifyPhone?: string;
   notifyEmail?: string;
   sentReminders: number[];
   createdAt?: string;
@@ -34,55 +33,20 @@ const REMINDER_MINUTES = [30, 20, 10];
 
 const TaskManager = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, email: userEmail } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [newTask, setNewTask] = useState("");
   const [priority, setPriority] = useState<Task["priority"]>("medium");
   const [dueTime, setDueTime] = useState("");
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
-  const [notifyPhone, setNotifyPhone] = useState("");
   const [notifyEmail, setNotifyEmail] = useState("");
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [defaultPhone, setDefaultPhone] = useState("");
-  const [showPhonePrompt, setShowPhonePrompt] = useState(false);
 
-  // Fetch default phone from user_settings (shared with diary)
+  // Default the notify email to the logged-in user's email
   useEffect(() => {
-    if (!user) return;
-    const fetchSettings = async () => {
-      const { data } = await supabase
-        .from("user_settings")
-        .select("diary_phone")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (data?.diary_phone) {
-        setDefaultPhone(data.diary_phone);
-        setNotifyPhone(data.diary_phone);
-      } else {
-        setShowPhonePrompt(true);
-      }
-    };
-    fetchSettings();
-  }, [user]);
-
-  const saveDefaultPhone = async (phone: string) => {
-    if (!user || !phone.trim()) return;
-    const { data: existing } = await supabase
-      .from("user_settings")
-      .select("id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (existing) {
-      await supabase.from("user_settings").update({ diary_phone: phone.trim() }).eq("user_id", user.id);
-    } else {
-      await supabase.from("user_settings").insert({ user_id: user.id, diary_phone: phone.trim() });
-    }
-    setDefaultPhone(phone.trim());
-    setNotifyPhone(phone.trim());
-    setShowPhonePrompt(false);
-    toast.success("Default phone number saved!");
-  };
+    if (userEmail && !notifyEmail) setNotifyEmail(userEmail);
+  }, [userEmail]);
 
   // Fetch tasks from DB
   useEffect(() => {
@@ -104,7 +68,6 @@ const TaskManager = () => {
             completed: t.completed,
             dueDate: t.due_date || undefined,
             dueTime: t.due_time || undefined,
-            notifyPhone: t.notify_phone || undefined,
             notifyEmail: t.notify_email || undefined,
             sentReminders: [],
             createdAt: t.created_at,
@@ -116,7 +79,7 @@ const TaskManager = () => {
     fetchTasks();
   }, [user]);
 
-  // Reminder check interval
+  // Reminder check interval (email-only)
   useEffect(() => {
     const checkDueTasks = async () => {
       if (!notificationsEnabled) return;
@@ -125,7 +88,7 @@ const TaskManager = () => {
       const remindersToSend: { task: Task; minutesBefore: number }[] = [];
 
       for (const task of tasks) {
-        if (!task.dueTime || task.completed || !task.notifyPhone) continue;
+        if (!task.dueTime || task.completed || !task.notifyEmail) continue;
         const [h, m] = task.dueTime.split(":").map(Number);
         const dueMinutes = h * 60 + m;
         for (const minBefore of REMINDER_MINUTES) {
@@ -141,10 +104,10 @@ const TaskManager = () => {
       for (const { task, minutesBefore } of remindersToSend) {
         try {
           const { error } = await supabase.functions.invoke("send-notification", {
-            body: { taskText: task.text, priority: task.priority, dueTime: task.dueTime, phone: task.notifyPhone, email: task.notifyEmail, minutesBefore },
+            body: { taskText: task.text, priority: task.priority, dueTime: task.dueTime, email: task.notifyEmail, minutesBefore },
           });
           if (error) throw error;
-          toast.success(`SMS sent (${minutesBefore}min before): ${task.text}`);
+          toast.success(`Email sent (${minutesBefore}min before): ${task.text}`);
         } catch (err) {
           console.error("Notification failed:", err);
           toast.error(`Failed to notify for: ${task.text}`);
@@ -176,7 +139,6 @@ const TaskManager = () => {
         priority,
         due_date: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
         due_time: dueTime || null,
-        notify_phone: notifyPhone.trim() || null,
         notify_email: notifyEmail.trim() || null,
         user_id: user.id,
       })
@@ -197,7 +159,6 @@ const TaskManager = () => {
         completed: data.completed,
         dueDate: data.due_date || undefined,
         dueTime: data.due_time || undefined,
-        notifyPhone: data.notify_phone || undefined,
         notifyEmail: data.notify_email || undefined,
         sentReminders: [],
         createdAt: data.created_at,
@@ -213,16 +174,15 @@ const TaskManager = () => {
     if (!user) return;
     const { data, error } = await supabase
       .from("tasks")
-      .insert({ text, priority: suggestedPriority, due_date: suggestedDate || null, due_time: suggestedTime || null, user_id: user.id })
+      .insert({ text, priority: suggestedPriority, due_date: suggestedDate || null, due_time: suggestedTime || null, notify_email: notifyEmail.trim() || null, user_id: user.id })
       .select()
       .single();
     if (error) { toast.error("Failed to add task"); return; }
     setTasks((prev) => [
-      { id: data.id, text: data.text, priority: data.priority as Task["priority"], completed: data.completed, dueDate: data.due_date || undefined, dueTime: data.due_time || undefined, notifyPhone: data.notify_phone || undefined, notifyEmail: data.notify_email || undefined, sentReminders: [], createdAt: data.created_at },
+      { id: data.id, text: data.text, priority: data.priority as Task["priority"], completed: data.completed, dueDate: data.due_date || undefined, dueTime: data.due_time || undefined, notifyEmail: data.notify_email || undefined, sentReminders: [], createdAt: data.created_at },
       ...prev,
     ]);
   };
-
 
   const toggleComplete = async (id: string) => {
     const task = tasks.find((t) => t.id === id);
@@ -256,34 +216,6 @@ const TaskManager = () => {
             {notificationsEnabled ? "Notifications On" : "Notifications Off"}
           </button>
         </div>
-
-        {showPhonePrompt && (
-          <div className="glass-card p-4 mb-6 space-y-3 animate-fade-in">
-            <p className="text-card-foreground text-sm font-semibold">📱 Set your phone number for reminders</p>
-            <p className="text-muted-foreground text-xs">Used for both task reminders and diary summaries.</p>
-            <div className="flex gap-2">
-              <input
-                type="tel"
-                className="glass-input flex-1"
-                placeholder="e.g. +91..."
-                id="default-phone-input"
-              />
-              <button
-                onClick={() => {
-                  const input = document.getElementById("default-phone-input") as HTMLInputElement;
-                  if (input?.value.trim()) saveDefaultPhone(input.value);
-                  else toast.error("Please enter a phone number");
-                }}
-                className="glass-btn text-sm"
-              >
-                Save
-              </button>
-              <button onClick={() => setShowPhonePrompt(false)} className="glass-btn-outline text-sm">
-                Skip
-              </button>
-            </div>
-          </div>
-        )}
 
         <TaskStreak tasks={tasks.map(t => ({ completed: t.completed, dueDate: t.dueDate, createdAt: t.createdAt }))} totalTasks={tasks.length} />
 
@@ -327,16 +259,11 @@ const TaskManager = () => {
               </button>
             </div>
             <div className="flex items-center gap-2">
-              <Phone className="w-4 h-4 text-card-foreground shrink-0" />
-              <input type="tel" className="glass-input flex-1" placeholder="Phone for SMS reminders (e.g. +91...)"
-                value={notifyPhone} onChange={(e) => setNotifyPhone(e.target.value)} />
-            </div>
-            <div className="flex items-center gap-2">
               <Mail className="w-4 h-4 text-card-foreground shrink-0" />
-              <input type="email" className="glass-input flex-1" placeholder="Notify email (optional)"
+              <input type="email" className="glass-input flex-1" placeholder="Notify email"
                 value={notifyEmail} onChange={(e) => setNotifyEmail(e.target.value)} />
             </div>
-            <p className="text-xs text-muted-foreground">📱 SMS reminders at 30, 20, and 10 minutes before due time.</p>
+            <p className="text-xs text-muted-foreground">📧 Email reminders at 30, 20, and 10 minutes before due time.</p>
           </div>
         </div>
 
@@ -363,7 +290,6 @@ const TaskManager = () => {
                   <div className="flex flex-wrap gap-2 mt-0.5">
                     {task.dueDate && <span className="text-muted-foreground text-xs flex items-center gap-1"><CalendarIcon className="w-3 h-3" /> {task.dueDate}</span>}
                     {task.dueTime && <span className="text-muted-foreground text-xs flex items-center gap-1"><Clock className="w-3 h-3" /> {task.dueTime}</span>}
-                    {task.notifyPhone && <span className="text-muted-foreground text-xs flex items-center gap-1"><Phone className="w-3 h-3" /> {task.notifyPhone}</span>}
                     {task.notifyEmail && <span className="text-muted-foreground text-xs flex items-center gap-1"><Mail className="w-3 h-3" /> {task.notifyEmail}</span>}
                     {task.sentReminders.length > 0 && <span className="text-muted-foreground text-xs">✅ Sent: {task.sentReminders.sort((a, b) => b - a).join(", ")}min</span>}
                   </div>
