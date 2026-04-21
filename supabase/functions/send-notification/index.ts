@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,18 +12,29 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    const { taskText, priority, dueTime, email, minutesBefore } = await req.json();
+  // Auth user (for logging)
+  const authHeader = req.headers.get("Authorization") || "";
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const supabaseAuthed = createClient(supabaseUrl, supabaseAnon, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: userData } = await supabaseAuthed.auth.getUser();
+  const userId = userData?.user?.id ?? null;
 
-    if (!taskText) {
-      return new Response(JSON.stringify({ error: "taskText is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+  const logEntry = async (entry: Record<string, unknown>) => {
+    try {
+      await supabaseAuthed.from("email_send_log").insert(entry);
+    } catch (e) {
+      console.error("Failed to log email entry:", e);
     }
+  };
 
-    if (!email) {
-      return new Response(JSON.stringify({ error: "email is required" }), {
+  try {
+    const { taskText, taskId, priority, dueTime, email, minutesBefore } = await req.json();
+
+    if (!taskText || !email) {
+      return new Response(JSON.stringify({ error: "taskText and email are required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -30,6 +42,14 @@ serve(async (req) => {
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) {
+      await logEntry({
+        user_id: userId,
+        task_id: taskId ?? null,
+        recipient_email: email,
+        minutes_before: minutesBefore ?? null,
+        status: "failed",
+        error_message: "no RESEND_API_KEY configured",
+      });
       return new Response(JSON.stringify({ error: "no RESEND_API_KEY configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -63,14 +83,42 @@ serve(async (req) => {
     });
 
     const body = await emailRes.text();
-    const status = emailRes.ok ? "sent" : `failed: ${emailRes.status} - ${body}`;
-    console.log("Resend email result:", status);
+    let messageId: string | null = null;
+    try { messageId = JSON.parse(body)?.id ?? null; } catch { /* ignore */ }
 
-    return new Response(JSON.stringify({ success: emailRes.ok, results: { email: status } }), {
+    if (emailRes.ok) {
+      console.log("Resend email result: sent");
+      await logEntry({
+        user_id: userId,
+        task_id: taskId ?? null,
+        recipient_email: email,
+        minutes_before: minutesBefore ?? null,
+        status: "sent",
+        message_id: messageId,
+      });
+    } else {
+      console.log("Resend email result: failed", emailRes.status, body);
+      await logEntry({
+        user_id: userId,
+        task_id: taskId ?? null,
+        recipient_email: email,
+        minutes_before: minutesBefore ?? null,
+        status: "failed",
+        error_message: `${emailRes.status}: ${body}`.slice(0, 1000),
+      });
+    }
+
+    return new Response(JSON.stringify({ success: emailRes.ok, messageId }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("Error:", error);
+    await logEntry({
+      user_id: userId,
+      recipient_email: "unknown",
+      status: "failed",
+      error_message: (error as Error).message?.slice(0, 1000),
+    });
     return new Response(JSON.stringify({ error: (error as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

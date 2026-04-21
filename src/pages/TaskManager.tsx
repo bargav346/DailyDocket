@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import TaskStreak from "@/components/TaskStreak";
 import AiSuggestions from "@/components/AiSuggestions";
+import EmailDeliveryStatus from "@/components/EmailDeliveryStatus";
 
 interface Task {
   id: string;
@@ -104,7 +105,7 @@ const TaskManager = () => {
       for (const { task, minutesBefore } of remindersToSend) {
         try {
           const { error } = await supabase.functions.invoke("send-notification", {
-            body: { taskText: task.text, priority: task.priority, dueTime: task.dueTime, email: task.notifyEmail, minutesBefore },
+            body: { taskText: task.text, taskId: task.id, priority: task.priority, dueTime: task.dueTime, email: task.notifyEmail, minutesBefore },
           });
           if (error) throw error;
           toast.success(`Email sent (${minutesBefore}min before): ${task.text}`);
@@ -291,8 +292,8 @@ const TaskManager = () => {
                     {task.dueDate && <span className="text-muted-foreground text-xs flex items-center gap-1"><CalendarIcon className="w-3 h-3" /> {task.dueDate}</span>}
                     {task.dueTime && <span className="text-muted-foreground text-xs flex items-center gap-1"><Clock className="w-3 h-3" /> {task.dueTime}</span>}
                     {task.notifyEmail && <span className="text-muted-foreground text-xs flex items-center gap-1"><Mail className="w-3 h-3" /> {task.notifyEmail}</span>}
-                    {task.sentReminders.length > 0 && <span className="text-muted-foreground text-xs">✅ Sent: {task.sentReminders.sort((a, b) => b - a).join(", ")}min</span>}
                   </div>
+                  <EmailDeliveryStatus taskId={task.id} />
                 </div>
                 <span className={`text-xs px-2.5 py-1 rounded-full text-card-foreground font-medium capitalize shrink-0 ${PRIORITY_STYLES[task.priority]}`}>{task.priority}</span>
                 <button onClick={() => deleteTask(task.id)}
