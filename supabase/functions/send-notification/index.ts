@@ -45,7 +45,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Task Manager <onboarding@resend.dev>",
+        from: "Task Manager <noreply@mail.trybuild.in>",
         to: [email],
         subject: `⏰ Task Reminder (${timeLabel}): ${taskText}`,
         html: `
