@@ -44,6 +44,42 @@ export type Database = {
         }
         Relationships: []
       }
+      email_send_log: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          message_id: string | null
+          minutes_before: number | null
+          recipient_email: string
+          status: string
+          task_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_id?: string | null
+          minutes_before?: number | null
+          recipient_email: string
+          status: string
+          task_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_id?: string | null
+          minutes_before?: number | null
+          recipient_email?: string
+          status?: string
+          task_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           completed: boolean
