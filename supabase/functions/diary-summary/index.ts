@@ -102,7 +102,7 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: "Daily Docket <onboarding@resend.dev>",
+          from: "Daily Docket <noreply@mail.trybuild.in>",
           to: [setting.diary_email],
           subject: `📝 Your Diary Summary — ${today}`,
           html,
